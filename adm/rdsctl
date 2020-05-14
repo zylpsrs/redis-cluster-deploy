@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# processname: redis_6379
+# chkconfig: - 89 10
+# description: Start and stop sentinel
+
+# Source function library
+. /etc/rc.d/init.d/functions
+
+REDISPORT="${2-7380}"
+REDISHOME=/oss/redis
+EXEC=$REDISHOME/bin/redis-server
+CLIEXEC=$REDISHOME/bin/redis-cli
+REDIS_PWD=Change1me
+
+USER=redis
+
+PIDFILE=$REDISHOME/tmp/redis-${REDISPORT}.pid
+CONF=$REDISHOME/conf/redis-${REDISPORT}.conf
+
+usage () {
+        basename=`basename "$0"`
+        echo "USAGE: $basename {start|stop|status|restart} [port<default:$REDISPORT>]"
+        echo " e.g.: $basename start $REDISPORT"
+        echo "       $basename status $REDISPORT"
+        echo "       $basename stop $REDISPORT"
+}
+
+roles () {
+        echo "=========================================="
+        $CLIEXEC -a "$REDIS_PWD" -p $REDISPORT info 2>/dev/null \
+          | egrep 'role|slave[0-9]|master_host|master_port'
+        echo "=========================================="
+}
+
+case "$1" in
+    start)
+        $EXEC $CONF
+        ;;
+    stop)
+        $CLIEXEC -a "$REDIS_PWD" -p $REDISPORT shutdown save 2>/dev/null
+        ;;
+    status)
+        roles
+        ;;
+    restart)
+        $0 stop
+        $0 start
+        ;;
+    *)
+        usage
+        ;;
+esac
